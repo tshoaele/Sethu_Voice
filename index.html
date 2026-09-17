@@ -1,0 +1,1131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#2e7d7a">
+<title>My Voice</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+
+<style>
+  /* ============================================================
+     TOKENS
+     One place for every colour and size, so the whole app stays
+     consistent. Dark mode overrides these same variables below.
+     ============================================================ */
+  :root{
+    --bg:#f4f7f6;
+    --card:#ffffff;
+    --ink:#1c2b2a;
+    --ink-soft:#4a5c5a;
+    --line:#dbe6e4;
+    --teal:#2e7d7a;
+    --teal-dark:#215a58;
+    --coral:#ff8a65;
+    --coral-dark:#e0673f;
+    --feel-bg:#e3f2fd;   --feel-ac:#1e88e5;
+    --want-bg:#fff0ea;   --want-ac:#ff7043;
+    --help-bg:#f1eafb;   --help-ac:#7e57c2;
+    --day-bg:#e8f5e9;    --day-ac:#43a047;
+    --adult-bg:#eceff1;  --adult-ac:#546e7a;
+    --focus:#ffb300;
+    --radius:22px;
+    --gap:16px;
+    --motion:0.25s;
+  }
+  [data-theme="dark"]{
+    --bg:#10181a;
+    --card:#1b2628;
+    --ink:#eef4f3;
+    --ink-soft:#aebdbb;
+    --line:#2b3a3c;
+    --feel-bg:#12283a;  --feel-ac:#64b5f6;
+    --want-bg:#3a2318;  --want-ac:#ffab91;
+    --help-bg:#241a35;  --help-ac:#b39ddb;
+    --day-bg:#16301a;   --day-ac:#81c784;
+    --adult-bg:#20292b; --adult-ac:#90a4ae;
+  }
+  [data-reduced-motion="true"] *{
+    animation-duration:0.001ms !important;
+    transition-duration:0.001ms !important;
+  }
+
+  *{ box-sizing:border-box; }
+  html,body{ height:100%; }
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-tap-highlight-color:transparent;
+  }
+  button{ font-family:inherit; }
+  h1,h2,h3{ margin:0 0 4px 0; }
+  p{ margin:0; }
+
+  /* Every tappable target stays large and gets a clear focus ring */
+  button{
+    cursor:pointer;
+    border:none;
+    color:inherit;
+  }
+  button:focus-visible, input:focus-visible{
+    outline:4px solid var(--focus);
+    outline-offset:2px;
+  }
+
+  .app{
+    max-width:760px;
+    margin:0 auto;
+    min-height:100%;
+    padding:18px 18px 40px;
+    position:relative;
+  }
+
+  .screen{ display:none; }
+  .screen.active{ display:block; }
+
+  /* Top bar shared by every screen except Home */
+  .topbar{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom:18px;
+  }
+  .home-btn{
+    background:var(--card);
+    border:2px solid var(--line);
+    border-radius:16px;
+    padding:10px 18px;
+    font-size:1.05rem;
+    font-weight:700;
+    display:flex;
+    gap:8px;
+    align-items:center;
+  }
+  .screen-title{
+    font-size:1.35rem;
+    font-weight:800;
+    text-align:right;
+  }
+
+  /* ---------- HOME ---------- */
+  .home-header{
+    text-align:center;
+    padding:18px 0 22px;
+  }
+  .home-header .logo{
+    font-size:2.4rem;
+    line-height:1;
+  }
+  .home-header h1{ font-size:1.6rem; }
+  .home-header p{ color:var(--ink-soft); font-size:1rem; }
+
+  .home-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:var(--gap);
+  }
+  .home-tile{
+    background:var(--card);
+    border:2px solid var(--line);
+    border-radius:var(--radius);
+    padding:26px 14px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:10px;
+    min-height:150px;
+    justify-content:center;
+    box-shadow:0 2px 0 rgba(0,0,0,0.03);
+    transition:transform var(--motion) ease;
+  }
+  .home-tile:active{ transform:scale(0.96); }
+  .home-tile .emoji{ font-size:2.6rem; }
+  .home-tile .label{ font-size:1.15rem; font-weight:800; text-align:center; }
+  .home-tile.wide{ grid-column:1 / -1; flex-direction:row; min-height:96px; }
+  .home-tile.wide .emoji{ font-size:2.1rem; }
+
+  .tile-feel{ background:var(--feel-bg); }
+  .tile-want{ background:var(--want-bg); }
+  .tile-help{ background:var(--help-bg); }
+  .tile-day{ background:var(--day-bg); }
+  .tile-adult{ background:var(--adult-bg); }
+
+  /* ---------- GENERIC BUTTON GRID (feelings / want / help) ---------- */
+  .grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:var(--gap);
+  }
+  .opt{
+    background:var(--card);
+    border:2px solid var(--line);
+    border-radius:var(--radius);
+    padding:20px 10px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:8px;
+    min-height:120px;
+    justify-content:center;
+    transition:transform var(--motion) ease;
+  }
+  .opt:active{ transform:scale(0.95); }
+  .opt .emoji{ font-size:2.3rem; }
+  .opt .label{ font-size:1rem; font-weight:700; text-align:center; }
+  .opt.hidden-easy{ display:none; }
+
+  .section-label{
+    font-weight:800;
+    font-size:1.05rem;
+    margin:22px 0 12px;
+    color:var(--ink-soft);
+  }
+
+  /* ---------- SPOKEN PHRASE BANNER ---------- */
+  .speech-banner{
+    background:var(--teal);
+    color:#fff;
+    border-radius:var(--radius);
+    padding:22px 18px;
+    text-align:center;
+    margin-bottom:18px;
+    display:none;
+  }
+  .speech-banner.show{ display:block; }
+  .speech-banner .phrase{
+    font-size:1.5rem;
+    font-weight:800;
+    margin-bottom:12px;
+  }
+  .speak-again{
+    background:#ffffff;
+    color:var(--teal-dark);
+    border-radius:16px;
+    padding:12px 22px;
+    font-size:1.05rem;
+    font-weight:800;
+    display:inline-flex;
+    gap:8px;
+    align-items:center;
+  }
+
+  /* ---------- CALM / BREATHE SCREEN ---------- */
+  .calm-wrap{
+    text-align:center;
+    padding:10px 0 20px;
+  }
+  .calm-wrap h2{ font-size:1.7rem; }
+  .breathe-circle{
+    width:220px;
+    height:220px;
+    margin:26px auto;
+    border-radius:50%;
+    background:radial-gradient(circle at 35% 30%, var(--help-ac), var(--teal-dark));
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:#fff;
+    font-size:1.3rem;
+    font-weight:800;
+    transform:scale(0.7);
+    transition:transform 4s ease-in-out;
+  }
+  .breathe-circle.grow{ transform:scale(1.15); }
+  .breathe-controls{
+    display:flex;
+    gap:14px;
+    justify-content:center;
+    margin-top:10px;
+  }
+  .big-btn{
+    background:var(--teal);
+    color:#fff;
+    border-radius:18px;
+    padding:16px 30px;
+    font-size:1.15rem;
+    font-weight:800;
+  }
+  .big-btn.secondary{
+    background:var(--card);
+    color:var(--ink);
+    border:2px solid var(--line);
+  }
+
+  /* ---------- MY DAY ---------- */
+  .day-list{ display:flex; flex-direction:column; gap:12px; }
+  .day-card{
+    background:var(--card);
+    border:2px solid var(--line);
+    border-radius:18px;
+    padding:14px 16px;
+    display:flex;
+    align-items:center;
+    gap:14px;
+  }
+  .day-card .emoji{ font-size:1.8rem; }
+  .day-card .info{ flex:1; }
+  .day-card .info .name{ font-weight:800; font-size:1.05rem; }
+  .day-status{
+    border-radius:14px;
+    padding:8px 14px;
+    font-weight:800;
+    font-size:0.95rem;
+    border:2px solid var(--line);
+    background:var(--bg);
+  }
+  .day-status[data-status="finished"]{ background:var(--day-ac); color:#fff; border-color:var(--day-ac); }
+  .day-status[data-status="current"]{ background:var(--focus); color:#3a2c00; border-color:var(--focus); }
+
+  /* ---------- ADULT MODE ---------- */
+  .pin-pad{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:12px;
+    max-width:320px;
+    margin:20px auto 0;
+  }
+  .pin-key{
+    background:var(--card);
+    border:2px solid var(--line);
+    border-radius:16px;
+    padding:20px 0;
+    font-size:1.4rem;
+    font-weight:800;
+  }
+  .pin-dots{
+    display:flex;
+    gap:14px;
+    justify-content:center;
+    margin:18px 0;
+  }
+  .pin-dot{
+    width:18px;height:18px;border-radius:50%;
+    border:2px solid var(--adult-ac);
+    background:transparent;
+  }
+  .pin-dot.filled{ background:var(--adult-ac); }
+  .pin-error{ color:var(--coral-dark); text-align:center; font-weight:700; min-height:1.4em; }
+
+  .tabbar{
+    display:flex;
+    gap:8px;
+    margin-bottom:18px;
+    flex-wrap:wrap;
+  }
+  .tab{
+    background:var(--card);
+    border:2px solid var(--line);
+    border-radius:14px;
+    padding:10px 14px;
+    font-weight:700;
+    font-size:0.95rem;
+  }
+  .tab.active{ background:var(--adult-ac); color:#fff; border-color:var(--adult-ac); }
+  .tabpane{ display:none; }
+  .tabpane.active{ display:block; }
+
+  .field-row{
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+    margin-bottom:14px;
+  }
+  .field-row label{ font-weight:700; font-size:0.95rem; color:var(--ink-soft); }
+  .field-row input, .field-row select{
+    padding:12px 14px;
+    border-radius:14px;
+    border:2px solid var(--line);
+    background:var(--card);
+    color:var(--ink);
+    font-size:1.05rem;
+  }
+
+  .custom-list{ display:flex; flex-direction:column; gap:10px; margin-top:12px; }
+  .custom-item{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    background:var(--card);
+    border:2px solid var(--line);
+    border-radius:16px;
+    padding:10px 12px;
+  }
+  .custom-item .ci-emoji{ font-size:1.5rem; }
+  .custom-item .ci-text{ flex:1; }
+  .custom-item .ci-text .t1{ font-weight:800; }
+  .custom-item .ci-text .t2{ font-size:0.85rem; color:var(--ink-soft); }
+  .icon-btn{
+    background:var(--bg);
+    border:2px solid var(--line);
+    border-radius:12px;
+    padding:8px 10px;
+    font-size:1.05rem;
+  }
+
+  .summary-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    background:var(--card);
+    border:2px solid var(--line);
+    border-radius:14px;
+    padding:12px 16px;
+    margin-bottom:8px;
+    font-weight:700;
+  }
+  .summary-total{
+    text-align:center;
+    font-size:1.1rem;
+    font-weight:800;
+    margin:14px 0;
+    color:var(--ink-soft);
+  }
+
+  .toggle-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    background:var(--card);
+    border:2px solid var(--line);
+    border-radius:16px;
+    padding:14px 16px;
+    margin-bottom:12px;
+  }
+  .switch{
+    width:52px;height:30px;border-radius:20px;
+    background:var(--line);
+    position:relative;
+    flex-shrink:0;
+    border:none;
+  }
+  .switch::after{
+    content:"";
+    position:absolute;
+    top:3px; left:3px;
+    width:24px;height:24px;
+    border-radius:50%;
+    background:#fff;
+    transition:left var(--motion) ease;
+  }
+  .switch.on{ background:var(--teal); }
+  .switch.on::after{ left:25px; }
+
+  .note-box{
+    background:var(--card);
+    border:2px dashed var(--line);
+    border-radius:16px;
+    padding:14px 16px;
+    font-size:0.92rem;
+    color:var(--ink-soft);
+    margin:14px 0;
+    line-height:1.5;
+  }
+
+  .signature{
+    text-align:center;
+    font-size:0.75rem;
+    color:var(--ink-soft);
+    opacity:0.6;
+    margin-top:26px;
+  }
+
+  .confirm-box{
+    background:var(--card);
+    border:2px solid var(--coral);
+    border-radius:16px;
+    padding:16px;
+    margin-top:14px;
+  }
+  .confirm-box p{ margin-bottom:12px; font-weight:700; }
+  .confirm-actions{ display:flex; gap:10px; }
+
+  @media (max-width:420px){
+    .home-tile .emoji{ font-size:2.2rem; }
+    .breathe-circle{ width:180px; height:180px; }
+  }
+</style>
+</head>
+<body>
+<div class="app" id="app">
+
+  <!-- ================= HOME ================= -->
+  <section class="screen active" data-screen="home">
+    <div class="home-header">
+      <div class="logo">🗨️💚</div>
+      <h1>My Voice</h1>
+      <p>Tap a picture to talk</p>
+    </div>
+    <div class="home-grid">
+      <button class="home-tile tile-feel" data-goto="feel">
+        <span class="emoji">😊</span>
+        <span class="label">How I Feel</span>
+      </button>
+      <button class="home-tile tile-want" data-goto="want">
+        <span class="emoji">🗣️</span>
+        <span class="label">I Want To Say</span>
+      </button>
+      <button class="home-tile tile-help" data-goto="help">
+        <span class="emoji">🧘</span>
+        <span class="label">I Need Help</span>
+      </button>
+      <button class="home-tile tile-day" data-goto="day">
+        <span class="emoji">📅</span>
+        <span class="label">My Day</span>
+      </button>
+      <button class="home-tile tile-adult wide" data-goto="adult-gate">
+        <span class="emoji">👨‍👩‍👧</span>
+        <span class="label">Adult Mode</span>
+      </button>
+    </div>
+  </section>
+
+  <!-- ================= HOW I FEEL ================= -->
+  <section class="screen" data-screen="feel">
+    <div class="topbar">
+      <button class="home-btn" data-goto="home">🏠 Home</button>
+      <div class="screen-title">How I Feel</div>
+    </div>
+
+    <div class="speech-banner" id="feel-banner">
+      <div class="phrase" id="feel-phrase"></div>
+      <button class="speak-again" data-speak-again>🔊 Speak Again</button>
+    </div>
+
+    <div id="feel-step-1">
+      <div class="grid" id="feel-grid"></div>
+    </div>
+
+    <div id="feel-step-2" style="display:none;">
+      <div class="section-label">WHAT DO I NEED?</div>
+      <div class="grid" id="need-grid"></div>
+    </div>
+  </section>
+
+  <!-- ================= I WANT TO SAY ================= -->
+  <section class="screen" data-screen="want">
+    <div class="topbar">
+      <button class="home-btn" data-goto="home">🏠 Home</button>
+      <div class="screen-title">I Want To Say</div>
+    </div>
+    <div class="speech-banner" id="want-banner">
+      <div class="phrase" id="want-phrase"></div>
+      <button class="speak-again" data-speak-again>🔊 Speak Again</button>
+    </div>
+    <div class="grid" id="want-grid"></div>
+  </section>
+
+  <!-- ================= I NEED HELP ================= -->
+  <section class="screen" data-screen="help">
+    <div class="topbar">
+      <button class="home-btn" data-goto="home">🏠 Home</button>
+      <div class="screen-title">I Need Help</div>
+    </div>
+    <div class="speech-banner" id="help-banner">
+      <div class="phrase" id="help-phrase"></div>
+      <button class="speak-again" data-speak-again>🔊 Speak Again</button>
+    </div>
+    <div class="grid" id="help-grid"></div>
+  </section>
+
+  <!-- ================= CALM / BREATHE ================= -->
+  <section class="screen" data-screen="calm">
+    <div class="topbar">
+      <button class="home-btn" data-goto="home">🏠 Home</button>
+      <div class="screen-title">Calm Space</div>
+    </div>
+    <div class="calm-wrap">
+      <h2>You are safe.</h2>
+      <div class="breathe-circle" id="breathe-circle">Ready</div>
+      <div class="breathe-controls">
+        <button class="big-btn" id="breathe-start">Start</button>
+        <button class="big-btn secondary" id="breathe-stop">Stop</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= MY DAY ================= -->
+  <section class="screen" data-screen="day">
+    <div class="topbar">
+      <button class="home-btn" data-goto="home">🏠 Home</button>
+      <div class="screen-title">My Day</div>
+    </div>
+    <div class="day-list" id="day-list"></div>
+  </section>
+
+  <!-- ================= ADULT MODE : PIN GATE ================= -->
+  <section class="screen" data-screen="adult-gate">
+    <div class="topbar">
+      <button class="home-btn" data-goto="home">🏠 Home</button>
+      <div class="screen-title">Adult Mode</div>
+    </div>
+    <p style="text-align:center;color:var(--ink-soft);font-weight:700;">Enter the PIN</p>
+    <div class="pin-dots" id="pin-dots"></div>
+    <div class="pin-error" id="pin-error"></div>
+    <div class="pin-pad" id="pin-pad"></div>
+  </section>
+
+  <!-- ================= ADULT MODE : DASHBOARD ================= -->
+  <section class="screen" data-screen="adult">
+    <div class="topbar">
+      <button class="home-btn" data-goto="home">🏠 Home</button>
+      <div class="screen-title">Adult Mode</div>
+    </div>
+
+    <div class="tabbar">
+      <button class="tab active" data-tab="customize">Customise</button>
+      <button class="tab" data-tab="summary">Daily Summary</button>
+      <button class="tab" data-tab="settings">Settings</button>
+      <button class="tab" data-tab="about">Privacy &amp; Safety</button>
+    </div>
+
+    <!-- Customise -->
+    <div class="tabpane active" data-pane="customize">
+      <div class="section-label">Add a button to "I Want To Say"</div>
+      <div class="field-row">
+        <label for="c-emoji">Picture (emoji)</label>
+        <input id="c-emoji" maxlength="4" placeholder="🎈">
+      </div>
+      <div class="field-row">
+        <label for="c-text">Button text</label>
+        <input id="c-text" placeholder="e.g. I want my blanket">
+      </div>
+      <div class="field-row">
+        <label for="c-phrase">What My Voice will say out loud</label>
+        <input id="c-phrase" placeholder="e.g. I want my blanket">
+      </div>
+      <button class="big-btn" id="c-add">Add Button</button>
+
+      <div class="section-label">Your custom buttons</div>
+      <div class="custom-list" id="custom-list"></div>
+    </div>
+
+    <!-- Summary -->
+    <div class="tabpane" data-pane="summary">
+      <div class="section-label" id="summary-date">TODAY</div>
+      <div id="summary-rows"></div>
+      <div class="summary-total" id="summary-total"></div>
+      <button class="big-btn secondary" id="clear-today">Clear Today's Data</button>
+      <div id="clear-confirm"></div>
+    </div>
+
+    <!-- Settings -->
+    <div class="tabpane" data-pane="settings">
+      <div class="toggle-row">
+        <span>Dark Mode</span>
+        <button class="switch" id="toggle-dark"></button>
+      </div>
+      <div class="toggle-row">
+        <span>Easy Mode (fewer buttons per screen)</span>
+        <button class="switch" id="toggle-easy"></button>
+      </div>
+      <div class="toggle-row">
+        <span>Reduce Motion</span>
+        <button class="switch" id="toggle-motion"></button>
+      </div>
+
+      <div class="section-label">Change PIN</div>
+      <div class="field-row">
+        <label for="new-pin">New 4 digit PIN</label>
+        <input id="new-pin" inputmode="numeric" maxlength="4" placeholder="1234">
+      </div>
+      <button class="big-btn" id="save-pin">Save New PIN</button>
+      <div class="pin-error" id="pin-save-msg"></div>
+    </div>
+
+    <!-- About / Safety -->
+    <div class="tabpane" data-pane="about">
+      <div class="note-box">Your information stays on this device. My Voice does not send your communication data to the internet.</div>
+      <div class="note-box">My Voice is a communication and support tool. It does not replace professional medical, psychological, educational or therapeutic care.</div>
+      <div class="signature">Vuja Tsoaela</div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+/* ============================================================
+   MY VOICE — application script
+   Everything runs locally. Nothing here ever talks to a server.
+   ============================================================ */
+
+/* ---------- small storage helpers ---------- */
+const Store = {
+  get(key, fallback){
+    try{
+      const raw = localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : fallback;
+    }catch(e){ return fallback; }
+  },
+  set(key, value){
+    try{ localStorage.setItem(key, JSON.stringify(value)); }
+    catch(e){ /* storage full or unavailable, app still works this session */ }
+  }
+};
+
+/* ---------- default data ---------- */
+const DEFAULT_SETTINGS = { theme:"light", easyMode:false, reducedMotion:false, pin:"1234" };
+
+const FEELINGS = [
+  { emoji:"😊", label:"Happy", core:true },
+  { emoji:"😢", label:"Sad", core:true },
+  { emoji:"😡", label:"Angry", core:true },
+  { emoji:"😨", label:"Scared", core:true },
+  { emoji:"😟", label:"Worried", core:false },
+  { emoji:"😴", label:"Tired", core:false },
+  { emoji:"🤕", label:"Pain", core:false },
+  { emoji:"😐", label:"I don't know", core:false },
+  { emoji:"❤️", label:"I feel safe", core:false },
+  { emoji:"🚫", label:"I don't like this", core:false }
+];
+
+const NEEDS = [
+  { emoji:"🫂", label:"A hug", short:"Hug", core:true },
+  { emoji:"🧘", label:"A break", short:"Break", core:true },
+  { emoji:"🤫", label:"Quiet", short:"Quiet", core:true },
+  { emoji:"💧", label:"Water", short:"Water", core:false },
+  { emoji:"🍎", label:"Food", short:"Food", core:false },
+  { emoji:"👩", label:"Mom", short:"Mom", core:false },
+  { emoji:"👨", label:"Dad", short:"Dad", core:false },
+  { emoji:"🆘", label:"Help", short:"Help", core:true }
+];
+
+const WANTS = [
+  { emoji:"🍎", label:"I want food", short:"Food", core:true },
+  { emoji:"💧", label:"I want water", short:"Water", core:true },
+  { emoji:"🚽", label:"I need the toilet", short:"Toilet", core:true },
+  { emoji:"📱", label:"I want my tablet", short:"Tablet", core:false },
+  { emoji:"🎮", label:"I want to play", short:"Play", core:true },
+  { emoji:"📺", label:"I want TV", short:"TV", core:false },
+  { emoji:"🫂", label:"I want a hug", short:"Hug", core:true },
+  { emoji:"👩", label:"I want Mom", short:"Mom", core:false },
+  { emoji:"👨", label:"I want Dad", short:"Dad", core:false },
+  { emoji:"🛌", label:"I want to sleep", short:"Sleep", core:false },
+  { emoji:"🚪", label:"I want to leave", short:"Leave", core:false },
+  { emoji:"🙅", label:"Leave me alone", short:"Alone", core:false },
+  { emoji:"🆘", label:"Help me", short:"Help", core:true },
+  { emoji:"❓", label:"I don't understand", short:"Confused", core:false }
+];
+
+const HELPS = [
+  { emoji:"🧘", label:"I need a break", short:"Break", core:true },
+  { emoji:"🤫", label:"I need quiet", short:"Quiet", core:true },
+  { emoji:"🎧", label:"I need headphones", short:"Headphones", core:false },
+  { emoji:"🫂", label:"I need a hug", short:"Hug", core:false },
+  { emoji:"💧", label:"I need water", short:"Water", core:false },
+  { emoji:"🚪", label:"I need to leave", short:"Leave", core:false },
+  { emoji:"🆘", label:"I need help", short:"Help", core:true },
+  { emoji:"😣", label:"I am overwhelmed", short:"Overwhelmed", core:true, special:"calm" }
+];
+
+const DEFAULT_SCHEDULE = [
+  { emoji:"🌅", label:"Wake up" },
+  { emoji:"🍳", label:"Breakfast" },
+  { emoji:"🎒", label:"School" },
+  { emoji:"🏠", label:"Home" },
+  { emoji:"🍎", label:"Snack" },
+  { emoji:"🎮", label:"Play" },
+  { emoji:"📚", label:"Homework" },
+  { emoji:"🍽️", label:"Dinner" },
+  { emoji:"🛁", label:"Bath" },
+  { emoji:"🛌", label:"Bed" }
+].map((item, i) => ({ id:"d"+i, ...item, status: i === 0 ? "current" : "not-started" }));
+
+/* ---------- state loaded from storage ---------- */
+let settings = Object.assign({}, DEFAULT_SETTINGS, Store.get("myvoice_settings", {}));
+let schedule = Store.get("myvoice_schedule", DEFAULT_SCHEDULE);
+let customWants = Store.get("myvoice_custom_wants", []);
+let history = Store.get("myvoice_history", []); // [{date, label}]
+
+let selectedFeeling = null; // holds the chosen feeling while step 2 is open
+
+/* ---------- speech ---------- */
+function speak(text){
+  if(!("speechSynthesis" in window)) return;
+  try{
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.rate = 0.95;
+    u.pitch = 1.05;
+    window.speechSynthesis.speak(u);
+  }catch(e){ /* speech not available, the text on screen still communicates */ }
+}
+let lastPhrase = "";
+function announce(bannerId, phraseId, text){
+  lastPhrase = text;
+  document.getElementById(phraseId).textContent = text;
+  document.getElementById(bannerId).classList.add("show");
+  speak(text);
+}
+document.addEventListener("click", (e)=>{
+  if(e.target.closest("[data-speak-again]")) speak(lastPhrase);
+});
+
+/* ---------- communication log ---------- */
+function todayKey(){
+  const d = new Date();
+  return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+}
+function logEvent(label){
+  history.push({ date: todayKey(), label });
+  Store.set("myvoice_history", history);
+}
+
+/* ---------- router ---------- */
+function showScreen(name){
+  document.querySelectorAll(".screen").forEach(s=>{
+    s.classList.toggle("active", s.dataset.screen === name);
+  });
+  if(name === "feel"){
+    document.getElementById("feel-step-1").style.display = "block";
+    document.getElementById("feel-step-2").style.display = "none";
+    document.getElementById("feel-banner").classList.remove("show");
+    selectedFeeling = null;
+  }
+  if(name === "want") document.getElementById("want-banner").classList.remove("show");
+  if(name === "help") document.getElementById("help-banner").classList.remove("show");
+  if(name === "day") renderSchedule();
+  if(name === "adult-gate") openPinGate();
+  if(name === "adult") renderAdult();
+}
+document.addEventListener("click", (e)=>{
+  const btn = e.target.closest("[data-goto]");
+  if(btn) showScreen(btn.dataset.goto);
+});
+
+/* ---------- build: How I Feel ---------- */
+function buildFeelGrid(){
+  const grid = document.getElementById("feel-grid");
+  grid.innerHTML = "";
+  FEELINGS.forEach(f=>{
+    const b = document.createElement("button");
+    b.className = "opt" + (f.core ? "" : " easy-optional");
+    b.innerHTML = `<span class="emoji">${f.emoji}</span><span class="label">${f.label}</span>`;
+    b.setAttribute("aria-label", f.label);
+    b.addEventListener("click", ()=>{
+      selectedFeeling = f.label;
+      announce("feel-banner","feel-phrase", `I feel ${f.label.toLowerCase()}.`);
+      logEvent(f.label);
+      document.getElementById("feel-step-1").style.display = "none";
+      document.getElementById("feel-step-2").style.display = "block";
+    });
+    grid.appendChild(b);
+  });
+}
+function buildNeedGrid(){
+  const grid = document.getElementById("need-grid");
+  grid.innerHTML = "";
+  NEEDS.forEach(n=>{
+    const b = document.createElement("button");
+    b.className = "opt" + (n.core ? "" : " easy-optional");
+    b.innerHTML = `<span class="emoji">${n.emoji}</span><span class="label">${n.label}</span>`;
+    b.setAttribute("aria-label", n.label);
+    b.addEventListener("click", ()=>{
+      const phrase = `I feel ${selectedFeeling.toLowerCase()}. I need ${n.label.toLowerCase()}.`;
+      announce("feel-banner","feel-phrase", phrase);
+      logEvent(n.short);
+    });
+    grid.appendChild(b);
+  });
+}
+
+/* ---------- build: I Want To Say ---------- */
+function buildWantGrid(){
+  const grid = document.getElementById("want-grid");
+  grid.innerHTML = "";
+  const all = WANTS.concat(customWants);
+  all.forEach(w=>{
+    const b = document.createElement("button");
+    b.className = "opt" + (w.core ? "" : " easy-optional");
+    b.innerHTML = `<span class="emoji">${w.emoji}</span><span class="label">${w.label}</span>`;
+    b.setAttribute("aria-label", w.label);
+    b.addEventListener("click", ()=>{
+      const phrase = w.phrase || w.label;
+      announce("want-banner","want-phrase", phrase);
+      logEvent(w.short);
+    });
+    grid.appendChild(b);
+  });
+}
+
+/* ---------- build: I Need Help ---------- */
+function buildHelpGrid(){
+  const grid = document.getElementById("help-grid");
+  grid.innerHTML = "";
+  HELPS.forEach(h=>{
+    const b = document.createElement("button");
+    b.className = "opt" + (h.core ? "" : " easy-optional");
+    b.innerHTML = `<span class="emoji">${h.emoji}</span><span class="label">${h.label}</span>`;
+    b.setAttribute("aria-label", h.label);
+    b.addEventListener("click", ()=>{
+      logEvent(h.short);
+      if(h.special === "calm"){
+        showScreen("calm");
+        return;
+      }
+      announce("help-banner","help-phrase", h.label);
+    });
+    grid.appendChild(b);
+  });
+}
+
+/* ---------- breathing exercise ---------- */
+let breatheTimer = null;
+function startBreathing(){
+  stopBreathing();
+  const circle = document.getElementById("breathe-circle");
+  const phases = [
+    { text:"Breathe in", grow:true },
+    { text:"Hold", grow:true },
+    { text:"Breathe out", grow:false }
+  ];
+  let i = 0;
+  function step(){
+    const phase = phases[i % phases.length];
+    circle.textContent = phase.text;
+    circle.classList.toggle("grow", phase.grow);
+    i++;
+  }
+  step();
+  breatheTimer = setInterval(step, 4000);
+}
+function stopBreathing(){
+  if(breatheTimer){ clearInterval(breatheTimer); breatheTimer = null; }
+  const circle = document.getElementById("breathe-circle");
+  circle.textContent = "Ready";
+  circle.classList.remove("grow");
+}
+document.getElementById("breathe-start").addEventListener("click", startBreathing);
+document.getElementById("breathe-stop").addEventListener("click", stopBreathing);
+
+/* ---------- My Day ---------- */
+function renderSchedule(){
+  const list = document.getElementById("day-list");
+  list.innerHTML = "";
+  const statusLabel = { "not-started":"⬜ Not started", "current":"🟡 Current", "finished":"✅ Finished" };
+  const order = ["not-started","current","finished"];
+  schedule.forEach(item=>{
+    const row = document.createElement("div");
+    row.className = "day-card";
+    row.innerHTML = `
+      <span class="emoji">${item.emoji}</span>
+      <div class="info"><div class="name">${item.label}</div></div>
+      <button class="day-status" data-status="${item.status}" data-id="${item.id}">${statusLabel[item.status]}</button>
+    `;
+    list.appendChild(row);
+  });
+  list.querySelectorAll(".day-status").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      const item = schedule.find(s=>s.id === btn.dataset.id);
+      const idx = order.indexOf(item.status);
+      item.status = order[(idx+1) % order.length];
+      Store.set("myvoice_schedule", schedule);
+      renderSchedule();
+    });
+  });
+}
+
+/* ---------- Adult Mode: PIN gate ---------- */
+let pinBuffer = "";
+function openPinGate(){
+  pinBuffer = "";
+  document.getElementById("pin-error").textContent = "";
+  renderPinDots();
+  const pad = document.getElementById("pin-pad");
+  pad.innerHTML = "";
+  ["1","2","3","4","5","6","7","8","9","⌫","0","OK"].forEach(k=>{
+    const b = document.createElement("button");
+    b.className = "pin-key";
+    b.textContent = k;
+    b.addEventListener("click", ()=> handlePinKey(k));
+    pad.appendChild(b);
+  });
+}
+function renderPinDots(){
+  const dots = document.getElementById("pin-dots");
+  dots.innerHTML = "";
+  for(let i=0;i<4;i++){
+    const d = document.createElement("span");
+    d.className = "pin-dot" + (i < pinBuffer.length ? " filled" : "");
+    dots.appendChild(d);
+  }
+}
+function handlePinKey(k){
+  if(k === "⌫"){ pinBuffer = pinBuffer.slice(0,-1); renderPinDots(); return; }
+  if(k === "OK"){
+    if(pinBuffer === settings.pin){ showScreen("adult"); }
+    else{ document.getElementById("pin-error").textContent = "That PIN is not right."; pinBuffer = ""; renderPinDots(); }
+    return;
+  }
+  if(pinBuffer.length < 4){ pinBuffer += k; renderPinDots(); }
+  if(pinBuffer.length === 4){
+    if(pinBuffer === settings.pin) showScreen("adult");
+    else{ document.getElementById("pin-error").textContent = "That PIN is not right."; pinBuffer = ""; renderPinDots(); }
+  }
+}
+
+/* ---------- Adult Mode: tabs ---------- */
+document.querySelectorAll(".tab").forEach(tab=>{
+  tab.addEventListener("click", ()=>{
+    document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+    document.querySelectorAll(".tabpane").forEach(p=>p.classList.remove("active"));
+    tab.classList.add("active");
+    document.querySelector(`.tabpane[data-pane="${tab.dataset.tab}"]`).classList.add("active");
+  });
+});
+
+function renderAdult(){
+  renderCustomList();
+  renderSummary();
+  renderSettingsUI();
+}
+
+/* Customise: add / edit / delete buttons */
+document.getElementById("c-add").addEventListener("click", ()=>{
+  const emoji = document.getElementById("c-emoji").value.trim() || "⭐";
+  const text = document.getElementById("c-text").value.trim();
+  const phrase = document.getElementById("c-phrase").value.trim() || text;
+  if(!text) return;
+  customWants.push({ id:"c"+Date.now(), emoji, label:text, phrase, short:text, core:true, custom:true });
+  Store.set("myvoice_custom_wants", customWants);
+  document.getElementById("c-emoji").value = "";
+  document.getElementById("c-text").value = "";
+  document.getElementById("c-phrase").value = "";
+  renderCustomList();
+});
+function renderCustomList(){
+  const list = document.getElementById("custom-list");
+  list.innerHTML = "";
+  if(customWants.length === 0){
+    list.innerHTML = `<p style="color:var(--ink-soft);">No custom buttons yet.</p>`;
+    return;
+  }
+  customWants.forEach((w, idx)=>{
+    const row = document.createElement("div");
+    row.className = "custom-item";
+    row.innerHTML = `
+      <span class="ci-emoji">${w.emoji}</span>
+      <div class="ci-text"><div class="t1">${w.label}</div><div class="t2">says: "${w.phrase}"</div></div>
+      <button class="icon-btn" data-up="${idx}">⬆️</button>
+      <button class="icon-btn" data-down="${idx}">⬇️</button>
+      <button class="icon-btn" data-del="${idx}">🗑️</button>
+    `;
+    list.appendChild(row);
+  });
+  list.querySelectorAll("[data-del]").forEach(b=>b.addEventListener("click", ()=>{
+    customWants.splice(Number(b.dataset.del),1);
+    Store.set("myvoice_custom_wants", customWants);
+    renderCustomList();
+  }));
+  list.querySelectorAll("[data-up]").forEach(b=>b.addEventListener("click", ()=>{
+    const i = Number(b.dataset.up);
+    if(i > 0){ [customWants[i-1],customWants[i]] = [customWants[i],customWants[i-1]]; Store.set("myvoice_custom_wants", customWants); renderCustomList(); }
+  }));
+  list.querySelectorAll("[data-down]").forEach(b=>b.addEventListener("click", ()=>{
+    const i = Number(b.dataset.down);
+    if(i < customWants.length-1){ [customWants[i+1],customWants[i]] = [customWants[i],customWants[i+1]]; Store.set("myvoice_custom_wants", customWants); renderCustomList(); }
+  }));
+}
+
+/* Daily Summary */
+function renderSummary(){
+  const today = todayKey();
+  const rows = document.getElementById("summary-rows");
+  rows.innerHTML = "";
+  const todays = history.filter(h=>h.date === today);
+  const counts = {};
+  todays.forEach(h=> counts[h.label] = (counts[h.label]||0) + 1 );
+  const keys = Object.keys(counts);
+  if(keys.length === 0){
+    rows.innerHTML = `<p style="color:var(--ink-soft);">No selections yet today.</p>`;
+  }else{
+    keys.forEach(k=>{
+      const row = document.createElement("div");
+      row.className = "summary-row";
+      row.innerHTML = `<span>${k}</span><span>${counts[k]}</span>`;
+      rows.appendChild(row);
+    });
+  }
+  document.getElementById("summary-total").textContent = `Total selections today: ${todays.length}`;
+  document.getElementById("summary-date").textContent = `TODAY (${today})`;
+}
+document.getElementById("clear-today").addEventListener("click", ()=>{
+  const box = document.getElementById("clear-confirm");
+  box.innerHTML = `
+    <div class="confirm-box">
+      <p>Clear today's communication data? This cannot be undone.</p>
+      <div class="confirm-actions">
+        <button class="big-btn" id="confirm-clear-yes">Yes, clear it</button>
+        <button class="big-btn secondary" id="confirm-clear-no">Cancel</button>
+      </div>
+    </div>`;
+  document.getElementById("confirm-clear-yes").addEventListener("click", ()=>{
+    const today = todayKey();
+    history = history.filter(h=>h.date !== today);
+    Store.set("myvoice_history", history);
+    box.innerHTML = "";
+    renderSummary();
+  });
+  document.getElementById("confirm-clear-no").addEventListener("click", ()=>{ box.innerHTML = ""; });
+});
+
+/* Settings: theme, easy mode, reduced motion, pin change */
+function applySettings(){
+  document.documentElement.setAttribute("data-theme", settings.theme);
+  document.documentElement.setAttribute("data-reduced-motion", settings.reducedMotion ? "true" : "false");
+  document.querySelectorAll(".easy-optional").forEach(el=>{
+    el.classList.toggle("hidden-easy", settings.easyMode);
+  });
+}
+function renderSettingsUI(){
+  document.getElementById("toggle-dark").classList.toggle("on", settings.theme === "dark");
+  document.getElementById("toggle-easy").classList.toggle("on", settings.easyMode);
+  document.getElementById("toggle-motion").classList.toggle("on", settings.reducedMotion);
+}
+document.getElementById("toggle-dark").addEventListener("click", ()=>{
+  settings.theme = settings.theme === "dark" ? "light" : "dark";
+  Store.set("myvoice_settings", settings);
+  applySettings(); renderSettingsUI();
+});
+document.getElementById("toggle-easy").addEventListener("click", ()=>{
+  settings.easyMode = !settings.easyMode;
+  Store.set("myvoice_settings", settings);
+  applySettings(); renderSettingsUI();
+});
+document.getElementById("toggle-motion").addEventListener("click", ()=>{
+  settings.reducedMotion = !settings.reducedMotion;
+  Store.set("myvoice_settings", settings);
+  applySettings(); renderSettingsUI();
+});
+document.getElementById("save-pin").addEventListener("click", ()=>{
+  const val = document.getElementById("new-pin").value.trim();
+  const msg = document.getElementById("pin-save-msg");
+  if(!/^[0-9]{4}$/.test(val)){ msg.textContent = "PIN must be exactly 4 numbers."; return; }
+  settings.pin = val;
+  Store.set("myvoice_settings", settings);
+  document.getElementById("new-pin").value = "";
+  msg.style.color = "var(--teal-dark)";
+  msg.textContent = "New PIN saved.";
+});
+
+/* ---------- service worker registration ---------- */
+if("serviceWorker" in navigator){
+  window.addEventListener("load", ()=>{
+    navigator.serviceWorker.register("service-worker.js").catch(()=>{
+      /* offline install step failed silently, the app still works this session */
+    });
+  });
+}
+
+/* ---------- boot ---------- */
+buildFeelGrid();
+buildNeedGrid();
+buildWantGrid();
+buildHelpGrid();
+applySettings();
+</script>
+</body>
+</html>
